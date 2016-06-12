@@ -217,7 +217,7 @@ class HtmlParser:
                         specialtySpanSelect = divPSelect[1].xpath("span/span")
                         if specialtySpanSelect and len(specialtySpanSelect) > 0:
                             pModel["value"] = specialtySpanSelect.xpath("text()").extract()[0]
-                        else
+                        else:
                             pModel["value"] = divPSelect[1].xpath("text()").extract()[0].strip()
                     elif divIdStr == "checkout_policy":
                         pModel["type"] = "checkout"
@@ -227,7 +227,7 @@ class HtmlParser:
                         specialtySpanSelect = divPSelect[1].xpath("span/span")
                         if specialtySpanSelect and len(specialtySpanSelect) > 0:
                             pModel["value"] = specialtySpanSelect.xpath("text()").extract()[0]
-                        else
+                        else:
                             pModel["value"] = divPSelect[1].xpath("text()").extract()[0].strip()
                     elif divIdStr == "cancellation_policy":
                         continue

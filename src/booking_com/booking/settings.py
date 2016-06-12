@@ -20,7 +20,7 @@ BOT_NAME = 'booking'
 SPIDER_MODULES = ['booking.spiders']
 NEWSPIDER_MODULE = 'booking.spiders'
 
-MONGODB_SERVER = '192.168.2.158'
+MONGODB_SERVER = '192.168.100.10'
 MONGODB_PORT = 27017
 MONGODB_DB = 'booking_com'
 MONGODB_UNIQ_KEY = '_id'

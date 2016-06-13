@@ -15,7 +15,7 @@ class HtmlParser:
         # country key
         # e.g. http://www.booking.com/destination/country/dk.zh-cn.html?label=gen173nr-1DEgJnbzIEY2l0eUICWFhIM2IFbm9yZWZoMYgBAZgBMsIBA2FibsgBDNgBA-gBAagCBA;sid=a26a7188a28c6716ba87b49b9a57c2a1;dcid=1
         keys = HtmlParser.get_url_key(url)
-        logging.warning('----------------------------  %s' % keys)
+        #logging.warning('----------------------------  %s' % keys)
         country["key"] = keys["key"]
         country["language"] = keys["language"]
 
@@ -292,9 +292,9 @@ class HtmlParser:
                         pModel = {"type":"other"}
                         divPSelect = divSelect.xpath("p")
                         pTextList = []
+                        #logging.warning('----------------------------  %s' % divPSelect.extract())
                         for index in range(len(divPSelect)):
                             pNode = divPSelect[index]
-                            #logging.warning('----------------------------  %s' % pNode)
                             if index == 0:
                                 pModel["name"] = pNode.xpath("span/text()").extract()[0].strip()
                             else:
@@ -358,14 +358,146 @@ class HtmlParser:
                     hotel["room_count"] = selfTextLine.groups()[0]
                     
         #room list
-        noTranslated = hxs.xpath("//div[@id='individualrooms']/table/tbody/tr")
-
-            
-
-
-
-
-
+        roomList = []
+        noTranslated = hxs.xpath("//div[@id='individualrooms']/table/tbody")
+        noTranslatedTr = noTranslated.xpath("tr[re:test(@class, '^room_loop_counter[1-9]\smaintr')]")
+        #/table/tbody/tr[re:test(@class, '^room_loop_counter[1-9]\D')]
+        if noTranslatedTr and len(noTranslatedTr) > 0:
+            for noTranslatedTrItem in noTranslatedTr:
+                room = hotelRoomItem()
+                room["language"] = hotel["language"]
+                room["hotel_key"] = hotel["key"]
+                room["hotel_url"] = hotel["url"]
+                firstTd = noTranslatedTrItem.xpath("td")[0]
+                room["id"] = firstTd.xpath("div[@class='rt-room-info']/@id").extract()[0]
+                room["name"] = firstTd.xpath("span/a[@href='#RD" + room["id"] + "']/text()").extract()[0]
+                detailSelect = noTranslated.xpath("tr/td/div[@id='blocktoggleRD"+ room["id"] +"']")
+                imagesSelect = detailSelect.xpath("div[@class='rt_lightbox_left_container']/div/img/@src").extract()
+                room["images"] = imagesSelect
+                roomMetaSelect = detailSelect.xpath("div[@class='rt_lightbox_description_meta']")
+                # roomInfoText = roomMetaSelect.xpath("div[@class='info']/text()").extract()[1]
+                # roomInfoTextRE = re.match(r"([1-9]\d*)", roomInfoText)
+                # if roomInfoTextRE is not None:
+                #     room["size"] = roomInfoTextRE.groups()[0]
+                roomBedListSelect = roomMetaSelect.xpath("div[@class='info']/ul[@class='rt-list']/li")
+                roomBedSelect = roomMetaSelect.xpath("div[@class='info info_rt_bed_sizes']/span")
+                if roomBedListSelect and len(roomBedListSelect) > 0:
+                    roomBedList = []
+                    for roomBedListSelectItem in roomBedListSelect:
+                        roomBedArray = []
+                        selfSpanSelectArray = roomBedListSelectItem.xpath("span")
+                        for selfSpanSelect in selfSpanSelectArray:
+                            roomBed = {}
+                            selfClassName = selfSpanSelect.xpath("@class").extract()[0]
+                            #selfSpanSelect = roomBedListSelectItem.xpath("span[contains(@class, 'rt_detail_bed_info')]")
+                            if selfClassName == "rt_detail_bed_icon":
+                                continue
+                            if selfClassName.find("rt_detail_bed_info") > -1:
+                                roomBed["name"] = selfSpanSelect.xpath("text()").extract()[0].strip()
+                                roomBed["size"] = selfSpanSelect.xpath("@title").extract()[0].strip()
+                                roomBed["type"] = "bed"
+                            elif selfClassName == "or":
+                                roomBed["type"] = "or"
+                            roomBedArray.append(roomBed)
+    
+                        otherText = roomBedListSelectItem.xpath("text()").extract()
+                        otherTextArray = []
+                        for ot in otherText:
+                            ot = ot.strip()
+                            if len(ot) > 0:
+                                otherTextArray.append(ot)
+                        if len(otherTextArray) > 0:
+                            roomBed = {}
+                            roomBed["other"] = otherTextArray
+                            roomBed["type"] = "other"
+                            roomBedArray.append(roomBed)
+    
+                        roomBedList.append(roomBedArray)
+                    room["beds"] = roomBedList
+                elif roomBedSelect and len(roomBedSelect) > 0:
+                    roomBedList = []
+                    for roomBedSelectItem in roomBedSelect:
+                        roomBed = {}
+                        selfClassName = roomBedSelectItem.xpath("@class").extract()[0]
+                        if selfClassName == "rt_detail_bed_icon":
+                            continue
+                        if selfClassName.find("rt_detail_bed_info") > -1:
+                            roomBed["name"] = roomBedSelectItem.xpath("text()").extract()[0].strip()
+                            #logging.warning('----------------------------  %s' % roomBedSelectItem.extract())
+                            roomBed["size"] = roomBedSelectItem.xpath("@title").extract()[0].strip()
+                            roomBed["type"] = "bed"
+                        elif selfClassName == "or":
+                            roomBed["type"] = "or"
+                        roomBedList.append(roomBed)
+                    room["bed"] = roomBedList
+    
+                roomInfo = []
+    
+                roomBedPSelectArray = roomMetaSelect.xpath("p")
+                if roomBedPSelectArray and len(roomBedPSelectArray) > 0:
+                    for roomBedPSelect in roomBedPSelectArray:
+                        #logging.warning('----------------------------  %s' % roomBedPSelect.extract())
+                        roomInfoItem = {"type":"other"}
+                        selfStrongSelect = roomBedPSelect.xpath("strong")
+                        if selfStrongSelect and len(selfStrongSelect) > 0:
+                            roomInfoItem["name"] = selfStrongSelect.xpath("text()").extract()[0].strip()
+                            roomFacilitiesText = roomBedPSelect.xpath("text()").extract()
+                            roomFacilitiesSpanSelect = roomBedPSelect.xpath("span")
+                            tmpText = ""
+                            for facilitiesText in roomFacilitiesText:
+                                tmpText = tmpText+facilitiesText
+                            selfTextSp = tmpText.split(",")
+                            facilitieArray = []
+                            spanIndex = 0
+                            for selfText in selfTextSp:
+                                if len(selfText) > 0:
+                                    facilitieArray.append({"name":selfText.strip()})
+                                else:
+                                    selfMode = {}
+                                    currentSpan = roomFacilitiesSpanSelect[spanIndex]
+                                    selfMode["name"] = currentSpan.xpath("text()").extract()[0].strip()
+                                    selfMode["title"] = currentSpan.xpath("@data-title").extract()[0].strip()
+                                    spanIndex = spanIndex+1
+                                    facilitieArray.append(selfMode)
+                            roomInfoItem["value"] = facilitieArray
+                        else:
+                            selfText = ""
+                            for text in roomBedPSelect.xpath("text()").extract():
+                                if len(selfText) == 0:
+                                    selfText = selfText + text.strip()
+                                else:
+                                    selfText = selfText + "|br|" + text.strip()
+                            #logging.warning('----------------------------  %s' % selfText)
+                            if len(selfText) > 0:
+                                roomInfoItem["value"] = selfText
+                        roomInfo.append(roomInfoItem)
+    
+                roomInfoSelectArray = roomMetaSelect.xpath("div[@class='info']")
+                if roomInfoSelectArray and len(roomInfoSelectArray) > 0:
+                    for roomInfoSelect in roomInfoSelectArray:
+                        roomInfoItem = {"type":"base"}
+                        selfStrongSelect = roomInfoSelect.xpath("strong")
+                        if selfStrongSelect and len(selfStrongSelect) > 0:
+                            roomInfoItem["name"] = selfStrongSelect.xpath("text()").extract()[0].strip()
+                            #logging.warning('----------------------------  %s' % roomInfoSelect.xpath("text()").extract())
+                            selfTextArray = roomInfoSelect.xpath("text()").extract()
+                            selfText = ""
+                            for text in selfTextArray:
+                                text = text.strip()
+                                if len(text) > 0:
+                                    if len(selfText) == 0:
+                                        selfText = selfText + text
+                                    else:
+                                        selfText = selfText + "|br|" + text
+                            roomInfoItem["value"] = selfText
+                            
+                            roomInfo.append(roomInfoItem)
+    
+                if len(roomInfo) > 0:
+                    room["info"] = roomInfo
+    
+    
+                roomList.append(room)
 
         #hType
         if hotel["hotel_type"] is None:
@@ -373,31 +505,7 @@ class HtmlParser:
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        return hotel
+        return {"hotel":hotel,"rooms":roomList}
             
     @staticmethod
     def remove_url_parameter(url):

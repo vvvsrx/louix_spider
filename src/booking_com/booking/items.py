@@ -46,6 +46,19 @@ class hotelItem(Item):
 	brand = Field()
 	room_count = Field()
 	room_list = Field()
+
+class hotelRoomItem(Item):
+	id = Field()
+	language = Field()
+	name = Field()
+	hotel_key = Field()
+	hotel_url = Field()
+	images = Field()
+	size = Field()
+	beds = Field()
+	bed = Field()
+	info = Field()
+
 		
 		
 

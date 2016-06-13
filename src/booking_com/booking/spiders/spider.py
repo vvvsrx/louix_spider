@@ -2,11 +2,14 @@ from scrapy.selector import Selector,HtmlXPathSelector
 from scrapy.spiders import CrawlSpider, Rule
 from booking.parser.HtmlParser import HtmlParser
 from scrapy.http import Request
-from w3lib.url import url_query_cleaner
+from w3lib.url import url_query_cleaner,url_query_parameter,add_or_replace_parameter
 import string
 from scrapy.linkextractors import LinkExtractor as sle
 import re
 import logging
+import datetime
+import calendar
+
 #from bs4 import BeautifulSoup
 
 
@@ -99,7 +102,46 @@ class BookingSpider(CrawlSpider):
     def parse_hotel(self, response):
         hxs = Selector(response)
         hotel = HtmlParser.extract_hotel(response.url, hxs)
-        return hotel
 
+        checkin = url_query_parameter(response.url,"checkin")
+        checkout = url_query_parameter(response.url,"checkout")
 
+        checkinDatetime = None
+        checkoutDatetime = None
+
+        today = datetime.date.today()
+
+        if checkin is not None:
+            checkinDatetime = datetime.datetime.strptime(checkin, "%Y-%m-%d").date()
+            checkinDatetime = self.add_months(checkinDatetime,1)
+        else:
+            checkinDatetime = datetime.date(today.year, today.month, 15)
+
+        if checkout is not None:
+            checkoutDatetime = datetime.datetime.strptime(checkout, "%Y-%m-%d").date()
+            checkoutDatetime = self.add_months(checkoutDatetime,1)
+        else:
+            checkoutDatetime = datetime.date(today.year, today.month, 16)
+
+        maxDatetime = self.add_months(today,18)
+
+        if checkinDatetime < maxDatetime:
+            url = url_query_cleaner(response.url)
+            url = add_or_replace_parameter(url,"checkin",str(checkinDatetime))
+            url = add_or_replace_parameter(url,"checkout",str(checkoutDatetime))
+            #logging.warning('----------------------------  %s' % url)
+            yield Request(url, callback=self.parse_hotel)
+
+        yield hotel["hotel"]
+
+        if len(hotel["rooms"]) > 0:
+            for room in hotel["rooms"]:
+                yield room
+
+    def add_months(self,sourcedate,months):
+        month = sourcedate.month - 1 + months
+        year = int(sourcedate.year + month / 12 )
+        month = month % 12 + 1
+        day = min(sourcedate.day,calendar.monthrange(year,month)[1])
+        return datetime.date(year,month,day)
         

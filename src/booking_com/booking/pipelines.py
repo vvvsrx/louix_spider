@@ -21,12 +21,59 @@ class BookingPipeline(object):
 class MongoDBPipeline(object):
 
 		def process_item(self, item, spider):
+			itemTypeName = type(item).__name__
+
+			if itemTypeName == "hotelRoomItem":
+				collection_name = itemTypeName + "_" + item["language"]
+				self.collection = MongoStatic.get_collection_obj("allKeys")
+				key = self.collection.find_one({"_id": item["hotel_url"]})
+				if key is not None:
+					#logging.warning('----------------------------  %s' % collection_name)
+					self.collection = MongoStatic.get_collection_obj("hotelItem_" + item["language"])
+					hotel = self.collection.find_one({"_id": key["obj_id"]})
+					if hotel is not None:
+						#logging.warning('----------------------------  hotel is not None')
+						self.collection = MongoStatic.get_collection_obj(collection_name)
+						roomArray = []
+						roomIdArray = []
+						hotelRoomIdArray = []
+						if hotel.get("room_list") is not None:
+							hotelRoomIdArray = hotel["room_list"]
+							for room_id in hotelRoomIdArray:
+								roomItem = self.collection.find_one({"_id": room_id})
+								roomArray.append(roomItem)
+								roomIdArray.append(room_id)
+						roomModel = None
+						if len(roomArray) > 0:
+							roomModelArray = filter(lambda x: x["name"] == item["name"], roomArray)
+							#logging.warning('----------------------------  %s' % roomModel)
+							if len(roomModelArray) > 0:
+								roomModel = roomModelArray[0]
+								currentRoomId = roomModel["_id"]
+								del roomModel['_id']
+								dd = DictDiffer(roomModel, dict(item))
+								flag2 = len(dd.changed()) > 0
+								flag3 = len(dd.added()) > 0
+								if flag2 or flag3:
+									self.collection.replace_one({"_id": currentRoomId},dict(item))
+						if len(roomArray) == 0 and roomModel is None:
+							result_id = self.collection.insert_one(dict(item)).inserted_id
+							roomIdArray.append(result_id)
+						#logging.warning('----------------------------  %s' % roomIdArray)
+						#logging.warning('----------------------------  %s' % hotelRoomIdArray)
+
+						if hotelRoomIdArray is not len(roomIdArray):
+							hotel["room_list"] = roomIdArray
+							self.collection = MongoStatic.get_collection_obj("hotelItem_" + item["language"])
+							self.collection.replace_one({"_id": hotel["_id"]},dict(hotel))
+
+			else:
 				self.collection = MongoStatic.get_collection_obj("allKeys")#self.db["allKeys"]
 				key = self.collection.find_one({"_id": item["url"]})
 				#logging.warning('----------------------------  %s' % item["language"])
 				# 判断去重
 				if key is None:
-						collection_name = type(item).__name__ + "_" + item["language"]
+						collection_name = itemTypeName + "_" + item["language"]
 						#logging.error('process_item----------------------------  %s' % collection_name)
 						self.collection = MongoStatic.get_collection_obj(collection_name)#self.db[collection_name]
 						# if self.__get_uniq_key() is not None:
@@ -53,14 +100,8 @@ class MongoDBPipeline(object):
 					else:
 						self.collection.insert_one(dict(item))
 
-				# self.collection = MongoStatic.get_collection_obj("language")#self.db["language"]
-				# langModel = {"_id": item["language"]}
-				# key = self.collection.find_one(langModel)
-				# if key is None:
-				# 	self.collection.insert_one(langModel)
 
-
-				return item
+			return item
 
 class MongoStatic(object):
 

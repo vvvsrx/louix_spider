@@ -133,11 +133,14 @@ class HtmlParser:
                 if scriptStrSelect and len(scriptStrSelect):
                     scriptStr = scriptStrSelect[0]
                     if scriptStr.find("booking.env.b_map_center_latitude") > -1:
+                        scriptLineRE = re.match(r"[^/]+booking.env.b_map_center_latitude = ([^;]+)", scriptStr)
+                        hotel["latitude"] = scriptLineRE.groups()[0]
                         #log.msg('----------------------------  %s' % scriptStr)
-                        scriptLine = re.findall("[1-9]\d*\.\d*|0\.\d*[1-9]\d*", scriptStr)
+                        #scriptLine = re.findall("[1-9]\d*\.\d*|0\.\d*[1-9]\d*", scriptStr)
                         #log.msg(scriptLine)
-                        hotel["latitude"] = scriptLine[0]
-                        hotel["longitude"] = scriptLine[1]
+                        #hotel["latitude"] = scriptLine[0]
+                        scriptLineRE = re.match(r"[^/]+booking.env.b_map_center_longitude = ([^;]+)", scriptStr)
+                        hotel["longitude"] = scriptLineRE.groups()[0]
                     elif scriptStr.find("atnm: '") > -1 and hotel["hotel_type"] is None:
                         hTypeLine = re.match(r"[^/]+atnm: '([^']+)", scriptStr)
                         if hTypeLine is not None:

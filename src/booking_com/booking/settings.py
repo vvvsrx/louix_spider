@@ -20,9 +20,9 @@ BOT_NAME = 'booking'
 SPIDER_MODULES = ['booking.spiders']
 NEWSPIDER_MODULE = 'booking.spiders'
 
-MONGODB_SERVER = '192.168.2.158'
+MONGODB_SERVER = '192.168.100.10'
 MONGODB_PORT = 27017
-MONGODB_DB = 'booking_comt'
+MONGODB_DB = 'booking_com'
 MONGODB_UNIQ_KEY = '_id'
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 #USER_AGENT = 'booking (+http://www.yourdomain.com)'
@@ -32,7 +32,7 @@ USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36
 #ROBOTSTXT_OBEY = True
 
 # Configure maximum concurrent requests performed by Scrapy (default: 16)
-#CONCURRENT_REQUESTS = 512
+CONCURRENT_REQUESTS = 1024
 
 # Configure a delay for requests for the same website (default: 0)
 # See http://scrapy.readthedocs.org/en/latest/topics/settings.html#download-delay
@@ -111,7 +111,7 @@ import datetime
 import time
 LOG_ENABLED = True
 LOG_ENCODING = 'utf-8'
-#LOG_LEVEL = 'ERROR'
-LOG_LEVEL = 'WARNING'
+LOG_LEVEL = 'ERROR'
+#LOG_LEVEL = 'WARNING'
 LOG_STDOUT = False
-#LOG_FILE = 'logs/error/' + datetime.datetime.now().strftime("%Y-%m-%d.%H") + '.log'
+LOG_FILE = 'logs/error/' + datetime.datetime.now().strftime("%Y-%m-%d.%H") + '.log'

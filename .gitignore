@@ -64,4 +64,8 @@ target/
 
 #OS X
 .DS_Store
-src/booking_com/.scrapy
+.scrapy/
+
+#vs
+.vs/
+*.user
